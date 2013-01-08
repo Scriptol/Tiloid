@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<link rel="stylesheet" href="resizer.css"> 
+<title>Thumbnail Maker</title>
+<script type="text/javascript" src="/code/chooser.js"></script>
+</head>
+
+<body>
+<div class="container">
+<div class="control">
+<h1>Thumbnail Maker</h1>
+<p>
+  <button onClick="fileButton('imgstore', 0)">Choose image</button>
+  <input type="text" id="imagename" size="32">
+  
+  Width    <input type="text" id="width" size="4"> 
+  Height   <input type="text" id="height" size="4"> 
+  
+  Format 
+  <select name="select" id="format">
+    <option>PNG</option>
+    <option>GIF</option>
+    <option>JPEG</option>
+  </select>&nbsp;
+  <input type="button"  value="Resize" onClick="resize()">
+</p>
+</div>
+<div class="storage" id="storage">
+<div  id="imgstore"></div>
+</div>
+</div>
+
+<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+<script type="text/javascript">
+
+currentpath['imagstore'] = "/";
+
+var socket = io.connect();
+function notification(content)
+{
+	var store=document.getElementById("imgstore");
+	var url = content.url;
+	if(url == undefined) return;
+	var w = content.width;
+	var h = content.height;
+	var format = content.format;
+	store.innerHTML = "<img src="+ url + '">' ;
+
+}
+socket.on('notification', function(x) { notification(x); });
+socket.on('dirdata', function(x) { 
+	//alert("data here " + " " + x['dir'] + " " + x['dir'] + " <br>");
+  //alert("dirdata " + JSON.stringify(x, null, 4));
+	imageList(x); 
+	});	
+  
+  
+socket.on('image', function(data) {
+  
+  var store = document.getElementById('imgstore');
+  var imagepath = data.path;
+  var ext = data.ext.slice(1);
+ 	var i = 2;
+  switch(ext) {
+		 case "png": i = 0;break;
+		 case "gif": i = 1;break;
+     default:
+      ext = 'jpeg';
+  }
+   
+  var wfield = document.getElementById("width");	
+  var hfield = document.getElementById("height");	
+
+  var canvas = document.createElement("canvas"); 
+  canvas.setAttribute("id", "canvasid"); 
+  var image = new Image();
+
+  image.onload = function ()
+  {
+    var w = image.width;
+    var h = image.height;
+     
+    canvas.width = w;
+    canvas.height = h;
+    
+    //alert(canvas.width + " "  + canvas.height);
+    store.innerHTML = "";
+    store.appendChild(canvas);
+    var context = canvas.getContext("2d");      
+    context.drawImage(image, 0, 0);
+    wfield.value = w;
+    hfield.value = h; 
+      
+    var sel = document.getElementById("format");
+    sel.getElementsByTagName('option')[i].selected = 'selected';
+    document.getElementById("imagename").value = imagepath;
+  }  
+
+	image.src = 'data:image/'+ext+';base64, ' + data.content;
+ 
+
+});  
+
+var lastThumb = null;
+
+// Getting thumbnail from server
+socket.on('thumbnail', function(data) {
+  var store = document.getElementById('imgstore');
+  var thumbfile = data.params.thumbfile;
+  var ext = data.params.ext.slice(1);
+ 
+ 	var i = 2;
+  switch(ext) {
+		 case "png": i = 0;break;
+		 case "gif": i = 1;break;
+     default:
+      ext = 'jpeg';
+  } 
+  //alert(thumbfile + " " + ext);
+  var canvas = document.getElementById("canvasid"); 
+  var image = new Image();
+  image.onload = function ()
+  {
+    var w = image.width;
+    var h = image.height;
+     
+    canvas.width = w;
+    canvas.height = h;
+    canvas.title=thumbfile;
+    store.innerHTML = "";
+    store.appendChild(canvas);
+    canvas.style.display="none";
+    var context = canvas.getContext("2d");      
+    context.drawImage(image, 0, 0);
+    var dataURL = canvas.toDataURL();
+    var imagetosave = document.createElement('img');
+    imagetosave.setAttribute('id', 'imagetosave')
+    store.appendChild(imagetosave);
+    imagetosave.src = dataURL;
+  }  
+  
+	image.src = 'data:image/'+ext+';base64, ' + data.content;
+  //alert(image.src);
+});
+	
+socket.on('error', function(x) {
+	 alert(x);
+	});	
+  	
+function resize() // call the server
+{
+	var w = document.getElementById("width").value;
+	var h = document.getElementById("height").value;	
+	var imagefile = document.getElementById('imagename').value;  
+	var format = document.getElementById("format");
+	var i = format.selectedIndex;	
+	var f = format.options[i].innerHTML;
+  var prefix = 'thumb-';
+  var p = imagefile.lastIndexOf(".");
+  var ext = imagefile.slice(p);
+  
+  p = imagefile.lastIndexOf("/") + 1;
+  var thumbfile = imagefile.slice(0, p) + prefix + imagefile.slice(p);
+	
+	//alert("resize " + imagefile);
+
+	var a = { 'app': 'explorer',
+            'params' : {
+              'command' : 'thumbnail',            
+              'path' : 'resizer/resizer.php', 
+              'imagefile' : imagefile,
+              'thumbfile' : thumbfile,
+              'prefix' : prefix,
+              'ext'    : ext,
+              'width'  : w,
+              'height' : h,
+              'format' : f.charAt(0)
+            }
+          }  ;
+	socket.emit('interface', a);
+}
+
+function save()
+{
+  var canvas = document.getElementById("canvasid"); 
+  var context = canvas.getContext("2d");
+
+  var filename = lastThumb.thumbfile;      
+    
+}
+
+function startResizer()
+{
+	currentpath['imgstore'] = "/";
+}
+window.onload=startResizer;
+</script>
+<script type="text/javascript" src="/code/link.js"></script>
+</body>
+</html>

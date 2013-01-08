@@ -1,0 +1,9 @@
+fieldset
+{
+	border:6px solid green;
+}
+legend
+{
+	color:green;
+	font-weight:bold;
+}

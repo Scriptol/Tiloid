@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Advanced Explorer</title>
+<link rel="stylesheet" href="aexplorer.css"> 
+<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="/code/chooser.js"></script>
+<script type="text/javascript" src="aexplorer.js"></script>
+<script type="text/javascript" src="/tiny_mce/tiny_mce.js"></script>
+</head>
+
+<body>
+<div id="aexplorer">
+<div id="outer">
+<div class="toolbar" id="topbar">
+ &nbsp;
+<div class="icon"><img src="images/invert.png" id='tinvert' width="50" height="48" title="Invert left and right panels"></div>
+<div class="icon"><img src="images/forward.png" id='tdup' width="48" height="48" title="Display right as left"></div>
+<div class="icon"><img src="images/copy.png" id='tcopy' width="48" height="48" title="Copy selected file or dirs to right panel"></div>
+<div class="icon"><img src="images/archive.png" id='tzip' width="48" height="48" title="Make a zip archive"></div>
+<div class="icon"><img src="images/edit.png" id='tedit' width="48" height="48" title="View/Edit the selected file"></div>
+<div class="icon alignright"><img src="images/help.png" id='thelp' width="48" height="48" title="Help"></div>
+</div> <!--toolbar-->
+
+<div id="dirpane">
+<div id="lpane"></div>
+<div id="rpane"></div>
+</div> <!--dirpane-->
+
+<div id="editpane">
+<form method="post" action="">
+<textarea id="elm1" name="elm1" rows="70" cols="100">
+</textarea>
+<input type="submit" name="save" value="Save" style="display:none" />
+</form>
+</div> <!--editpane-->
+</div> <!--outer-->
+<div id="statubar">
+	<div id="status">	</div>
+</div>
+</div> <!--explorer-->
+
+<script>
+function startExplorer()
+{
+	currentpath['lcontent'] = "/";
+	currentpath['rcontent'] = "/";	
+	fileButton('lcontent');
+	fileButton('rcontent');	
+	buildEvents();
+}
+window.onload=startExplorer;
+</script>
+<script type="text/javascript" src="/code/link.js"></script>
+</body>
+</html>
