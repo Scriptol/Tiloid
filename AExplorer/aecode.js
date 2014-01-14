@@ -3,6 +3,8 @@ var socket = io.connect();
 var leftpanel = document.getElementById("lpane");
 var rightpanel = document.getElementById("rpane");
 var currpanel = leftpanel;
+var AExplorerDrag = {'lcontent': true, 'rcontent':false };
+var AExplorerBMFlag = {'lcontent': false, 'rcontent':false };
 
 function sameDir()
 {
@@ -37,12 +39,31 @@ socket.on('confirm', function(data, fn) {
 	fn(answer);
 });
 socket.on('notification',	function(e) { notification(e); });
-socket.on('dirdata', 		function(e) { fileList(e); });
+socket.on('dirdata', 		function(e) { 
+  fileList(e);
+  var target = e.target;
+  currentpath[target]=e.path;
+  var letter = target.charAt(0)
+  var id = letter + 'star';     
+  var elem = document.getElementById(id);
+  elem.style.visibility="visible";
+  var delid = letter + "delete";
+  var img = document.getElementById(delid); 
+  img.src = "images/delete.png";
+  img.title="Delete selected file/dir";
+  var crid = letter + "create" 
+  document.getElementById(crid).title="Create directory"
+  AExplorerBMFlag[target]=false;    
+});
+
 socket.on('message',		function(e) { alert(e.content); });
+
 socket.on('status', 		function(e) { 
 	document.getElementById('status').innerHTML = e.content;
 });
+
 socket.on('editor',			function(e) { displayEditor(e.content); });
+
 socket.on('image', function(data) {
   var store = document.getElementById('rcontent');
 	var imagepath = data.path;
@@ -71,25 +92,47 @@ socket.on('image', function(data) {
     
     var cw = store.scrollWidth;
     var ch = store.scrollHeight;
-    
+
     var scalew = 1;
     var scaleh = 1;
     var ow = w;
     var oh = h;
     
-    if(w > cw) {
-      scalew = cw / w;
-      scaleh = scalew;
-      w = cw;
-      h = h * scaleh;
+    var ratio = h / w;
+    var cratio = ch / cw;     
+  
+    if(ratio > cratio)  // to be aligned on height
+    {    
+       if(h > ch) {
+        scaleh = ch / h;    
+        scalew = scaleh;  
+        h = ch;
+        w *= scalew;
+      }
+      if(w > cw) {
+        scalew = cw / w;
+        scaleh *= scalew;
+        w = cw;
+        h = oh * scaleh;
+      }
     }
-    if(h > ch) {
-      scaleh = ch / h;    
-      scalew *= scaleh;  
-      h = ch;
-      w = ow * scalew;
+    else
+    {
+      if(h > ch) {
+        scaleh = ch / h;    
+        scalew = scaleh;  
+        h = ch;
+        w = ow *  scalew;
+      }
+      if(w > cw) {
+        scalew = cw / w;
+        scaleh *= scalew;
+        w = cw;
+        h = oh * scaleh;
+      }          
     }
-    
+
+   
     //alert(scalew + ' ' + cw + "/" + w + "  " + scaleh + " " + ch + "/"+ h);
     if(h < ch)
     {
@@ -145,6 +188,15 @@ function getCurrentDirectory(target)
   return path.slice(p + 1);
 }
 
+function checkInBookmarks(target)
+{
+  if(AExplorerBMFlag[target]) {
+    alert("Can not do that in bookmarks!")
+    return true;
+  }
+  return false;  
+}
+
 /*
 	Top Events building
 */
@@ -177,7 +229,7 @@ var topDup = function (target) {
 var topCopy = function () 
 {
 	if(document.getElementById('dirpane').style.display=="none")	return;	
-	//alert(currentpath['lcontent'] + ' ' + currentpath['rcontent']);
+  if(checkInBookmarks('lcontent') || checkInBookmarks('lcontent')) return;  
 	var namelist = getSelectedNames('lcontent');
 	//alert(namelist);
 	if(namelist.length == 0)
@@ -192,6 +244,7 @@ var topCopy = function ()
 		alert("Can't copy a file over itself!");	
 		return;
 	}
+
 	var a = { 'app' : 'explorer',
 			  'params': { 'command': 'filecopy', 'list': namelist, 'source' : 'lcontent', 'target': 'rcontent',  }
 	};
@@ -200,6 +253,7 @@ var topCopy = function ()
 
 var topCopyRename = function(target) 
 { 
+  if(checkInBookmarks('lcontent') || checkInBookmarks('lcontent')) return;
 	var namelist = getSelected(target);
 	if(namelist.length != 1)
 	{
@@ -344,6 +398,8 @@ var panelReload = function (target) {
               'params' : { 'file': '', 'command': 'getdir', 'path': '.',  'target': target  }
     };
 	socket.emit('interface', a);
+  
+  AExplorerBMFlag[target] = false; 
 }
 var panelHome = function (target) { 
   var panel = target + 'path';
@@ -370,6 +426,18 @@ var panelUp = function(target)
 	socket.emit('interface', a);
 }
 var panelCreate = function(target) { 
+ 
+  if(AExplorerBMFlag[target]) {
+    var idx = (target == 'lcontent') ? 0 : 1;
+    var newbm = prompt('New bookmark:');
+    if(newbm) {
+      bookmarkAdd(idx, newbm);
+      AExplorerBMFlag[target]=false;
+      computer(target);
+    }  
+    return;
+  }   
+  
 	var newdir = prompt('New directory:');
 	if(newdir) {
 		var a = { 'app' : 'explorer',
@@ -408,6 +476,7 @@ var elementRename = function(spanitem, panelName)
   if(p2 == -1)
     p2 = saved.length; 
 	var oldname = saved.slice(p1 + 1, p2);
+  oldname = noHTMLchars(oldname);
 	//alert(saved);
 	var x = document.createElement("input");
 	x.setAttribute('type', 'text');
@@ -460,8 +529,9 @@ var elementRename = function(spanitem, panelName)
 
 var panelRename = function(panelName) 
 {
-   spanitem = getPointedContent(panelName);
-   elementRename(spanitem, panelName);
+  if(checkInBookmarks(panelName)) return;
+  spanitem = getPointedContent(panelName);
+  elementRename(spanitem, panelName);
 }   
 
 function panelFileInfo(target)
@@ -492,22 +562,35 @@ var panelDelete = function(target)
   selectToDelete(target);
 	var namelist = getSelectedNames(target);
 	var message = "Delete ";
-
+  
 	if(namelist.length == 0)
 	{
-		alert("No dir/file selected to delete");
+		alert("Nothing selected to delete");
 		return;
 	}
+	
+  if(AExplorerBMFlag[target]) {
+    var idx = (target == 'lcontent') ? 0 : 1; 
+    for(var i=0; i < namelist.length; i++) {
+      var name = namelist[i];
+      bookmarkDelete(idx, name);
+    }
+    AExplorerBMFlag[target]=false;
+    computer(target);
+    return;
+  }  
+  
 	if(namelist.length > 1) 
 		message += namelist.length + " files?";
 	else
 		message += namelist[0] + '?';
-		
+  	
 	if(window.confirm(message) == false)
 	{
 		panelReload(target);
 		return;
 	}
+  
 	var a = { 'app' : 'explorer',
 			  'params': { 'command': 'unlink', 'list': namelist, 'target': target }
 	};
@@ -520,6 +603,148 @@ var panelGo = function(target, x) {
 			  'params': { 'command': 'godir', 'path': x.value, 'target': target }
 	};
 	socket.emit('interface', a);					  
+}
+
+/*
+  Displays a list of bookmarks.
+  Called by the interface when a 'dirdata' event is received
+  from the server.
+*/
+
+
+function dispBookmarks(target, bm)
+{
+	insidezip[target]=false;
+	var d = document.getElementById(target);
+  //alert(JSON.stringify(bm, null, 4));
+	var extmask = false; 
+	var filepath = "";
+  
+	var fpathid = target + "path";
+	var fpath = document.getElementById(fpathid);
+	fpath.value = "Computer";
+  
+	var listid = target + "list";
+	var page = "<div class='filechooser'>";
+	page += "<div class='flist' id='"+ listid +"' tabindex='0'>";
+	var drivelist ="";
+	var dirlist = "";
+ 	
+	for(var i = 0; i < bm.length; i++)
+	{
+		var item = bm[i];
+    var name = item;
+		var dirtype = (name == "/" || (name.charAt(1) == ':' && name.length == 3));
+ 
+		if(dirtype)
+		{
+       drivelist += buildDrive(name, target) + "<br>";
+		}
+		else
+		{
+			 dirlist += buildDir(name, target) + "<br>";
+		}
+	}
+	
+	page += drivelist;
+	page += dirlist;
+	page += "</div>";
+	page += "</div>";
+	d.innerHTML = page;
+	addKeyListEvents(target);
+  //if(ChooserDrag[target]) setDrag(listid);
+
+	if(elementToSelect != null)
+	{
+		if(elementToSelect == '*')
+			setFirstSelected(target);
+		else
+		{
+			chooserLastSelected = null;
+			elementToSelect = getElementByName(elementToSelect, target);
+			sel(elementToSelect);
+		} 
+	}     
+	elementToSelect = null;
+	elementToOffset = null;
+
+	var currdiv = document.getElementById(listid);
+	currdiv.focus();
+}
+
+function bookmarkDelete(idx, name)
+{
+  var bm = config.Bookmarks.list[idx].select
+  var tf = bm.indexOf(name)
+  bm.splice(tf, 1)
+}
+
+function bookmarkAdd(idx, name)
+{
+  var bm = config.Bookmarks.list[idx].select
+  var tf = bm.indexOf(name)
+  if(tf > -1) {
+    alert(name + " already in list")
+    return;
+  } 
+  bm.push(name)
+}
+
+function computer(target)
+{
+  var letter = target.charAt(0);
+  var id = letter + "delete";
+  var delimg = document.getElementById(id);
+  
+  if(AExplorerBMFlag[target]) {
+    panelReload(target)
+    return;
+  }  
+  
+  var idx = (target == 'lcontent') ? 0 : 1;
+  var bm = config.Bookmarks.list[idx].select;
+	dispBookmarks(target, bm);
+
+  delimg.src = "images/bmdel.png";
+  delimg.title = "Delete bookmark";
+  AExplorerBMFlag[target] = true;
+  var id = letter + 'star';     
+  var elem = document.getElementById(id);
+  elem.style.visibility="hidden";
+  
+  var crid = letter + "create" 
+  document.getElementById(crid).title="Create a bookmark"
+
+}  
+
+function bookmark(target)
+{
+  if(AExplorerBMFlag[target])
+  {
+    alert("Already in bookmarks!");
+    return;
+  }
+  var idx = (target == 'lcontent') ? 0 : 1;
+  var bm = config.Bookmarks.list[idx].select;
+  var tpath = target + 'path';
+  tpath = document.getElementById(tpath).value;
+  
+  tpath = tpath.replace(/\\/gi, '/');
+  var already = bm.some(function(x) { return (x == tpath)} );
+  if(!already)
+    bm.push(tpath);
+
+  var id = target.charAt(0) + 'star';     
+  var elem = document.getElementById(id);
+  elem.src = "images/starlight.png";  
+  setTimeout(function() { elem.src="images/star.png"; }, 500);   
+	//alert(JSON.stringify(bm, null, 4));
+}
+
+function exitBookmarks()
+{
+    AExplorerBMFlag['lcontent']=false;
+    AExplorerBMFlag['rcontent']=false;
 }
 
 // Keys
@@ -618,6 +843,7 @@ function keyUnzip()
     socket.emit('interface', a);
   }  
 }
+
 
 /*
   These key code bypass default handlers
@@ -765,5 +991,30 @@ function buildEvents()
 	addEvent('rdelete', panelDelete, 'rcontent');	
 	
 	addInputEvent('rcontentpath', panelGo, 'rcontent');	
+
+  // drag and drop events
+   
+  var darear = document.getElementById('rcontent');
+  
+  darear.addEventListener('dragenter', function(evnt) {
+   if (evnt.preventDefault) evnt.preventDefault();
+   return false;
+  });   
+  
+  darear.addEventListener('dragover', function(evnt) {
+   if (evnt.preventDefault) evnt.preventDefault();
+   evnt.dataTransfer.dropEffect = 'copy';
+   return false;
+  });  
+  
+  darear.addEventListener('drop', function(evnt) {
+    if (evnt.stopPropagation) evnt.stopPropagation();
+    var x = evnt.dataTransfer.getData('text');
+    //alert(x);
+    //dropFiles(darear, evnt.dataTransfer.getData('text'));
+    topCopy();
+    evnt.preventDefault(); // for Firefox
+    return false;
+  }, false);  
 	
 }

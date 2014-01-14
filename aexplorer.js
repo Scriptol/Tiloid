@@ -56,7 +56,7 @@ function getFilename(request, response)
 {
     var urlpath = url.parse(request.url).pathname; // following domain or IP and port
     var localpath = path.join(process.cwd(), urlpath); // if we are at root
-    path.exists(localpath, function(result) { getFile(result, response, localpath)});
+    fs.exists(localpath, function(result) { getFile(result, response, localpath)});
 }
 
 function nativeComm(ncom)
@@ -98,26 +98,24 @@ function runScript(exists, file, param) // Run a local script a the Web interfac
 function webComm(websocket)
 {
   //websocket.emit('notification', 'Server online via websocket!');
-  websocket.on('interface',
-    function (data)
-    {
-	    var app = data.app;
-      var params = data.params;
-      console.log("app " + data.app + " target " + params.target);
-	    switch(app)
-	    {
-		   case 'explorer':
-        console.log(" ");
-			  explorer.shell(websocket, fs, params);
-			  break;
-		   default:
-        var filename = params.path;
-	     	path.exists(filename, function(result) { 
-          runScript(result, app, filename + " " + params)});
-	    }
-    }
+	websocket.on('interface',
+	function (data)
+  {
+		var app = data.app;
+		var params = data.params;
+    switch(app)
+	  {
+			case 'explorer':
+				console.log(" ");
+				explorer.shell(websocket, fs, params);
+				break;
+			default:
+				var filename = params.path;
+				fs.exists(filename, function(result) { 
+				runScript(result, app, filename + " " + params)});
+		}
+  }
   );
- 
 }
 
 
@@ -126,7 +124,7 @@ function loadBrowser(filename)
 	var browser = explorer.config.chrome;
 	var param="localhost:1000/" + filename;
 	console.log("Loading...");
-	path.exists(browser, function(result) {
+	fs.exists(browser, function(result) {
 		if(!result) { console.log("File not found " + browser); return 0; }
 		var command = browser + " " + param;
 		console.log("Running " + command);
@@ -137,7 +135,7 @@ function loadBrowser(filename)
 
 }
 
-explorer.loadIni("node.ini");
+var tiloidOS = explorer.loadIni("node.ini");
 var server = http.createServer(getFilename); // Create a server to display the interface
 server.listen(1000);
 console.log("Server available...");

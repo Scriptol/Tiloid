@@ -1,6 +1,6 @@
 ``
 `` Scriptol Link Checker 1.4
-`` (c) 2008-2012 Scriptol.com
+`` (c) 2008-2013 Scriptol.com
 `` Free under the GNU GPL 2 License.
 `` Requires the PHP interpreter.
 `` Sources are compiled with the Scriptol PHP compiler 7.0
@@ -45,7 +45,7 @@ array scanned = {}  // List of scanned pages
 
 void usage()
 	print
-	print "Link Checher - (c) 2008-2012 Scriptol.com - Freeware."
+	print "Link Checher - (c) 2008-2013 Scriptol.com - Freeware."
 	print "----------------------------------------------------"
 	print "Syntax:"
 	print "  solp linche [options] url"

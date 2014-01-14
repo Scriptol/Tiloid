@@ -165,7 +165,7 @@ a {
 
 .flist:focus
 {
-  outline:none;
+	outline:none;
 }
 
 .file, .dir
@@ -179,7 +179,7 @@ a {
 	margin:1px 1px 1px 1px;
 	padding:0px 6px 0px 0px;	
 	width:100%;
-  background-image:none;  
+	background-image:none;  
 }
 
 
@@ -221,18 +221,32 @@ a {
 	background-repeat: repeat-x;	
 }
 
+.fsroot {
+	float:left;
+	xposition:relative;
+	xtop:0;
+	xleft:0;
+	width:26px;
+	height:26px;
+	padding:2px 2px 0 8px;
+}
+.fsimg {
+	width:22px;
+	heigth:22px;
+}
 
 .fullpath, #outerstatus
 {
 	height:26px;
 	width:100%;
 	padding:0px;
-	margin:0 8px 0 4px;
 	border:1px solid #ccc;
 	background:#ECECEC;
 	box-shadow:inset -2px -2px 4px #EEE, inset 2px 2px 4px #aaa;  
 	display:block;
+	margin:0 8px 0 4px;
 }
+
 .innpath, #status
 {
 	margin:5px 4px 2px 8px;
@@ -241,8 +255,24 @@ a {
 	font-size:14px;
 	border:none;
 	padding:0;
-	background:#ECECEC;	
+	background:#ECECEC;
 	display:block;
+}
+.innpath {
+  width:92%;
+}
+.fstar {
+  float:right;
+  width:18px;
+  height:18px;
+  position:relative;
+  top:0;  
+}
+
+.fspath
+{
+	padding-left:32px;
+  padding-right:4px;
 }
 
 
@@ -352,7 +382,7 @@ a {
 .tooltip span img
 {
   float:left;
-  margin:0px 8px 8px 0;
+  margin:24px 8px 8px 0;
 }
 
 .tooltip:hover span

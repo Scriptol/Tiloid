@@ -51,7 +51,7 @@ var ZipLocalFile = function(bstream) {
         if (typeof bstream != typeof {} || !bstream.readNumber || typeof bstream.readNumber != typeof function(){}) {
                 return null;
         }
-        
+
         bstream.readNumber(4); // swallow signature
         this.version = bstream.readNumber(2);
         this.generalPurpose = bstream.readNumber(2);
@@ -63,12 +63,12 @@ var ZipLocalFile = function(bstream) {
         this.uncompressedSize = bstream.readNumber(4);
         this.fileNameLength = bstream.readNumber(2);
         this.extraFieldLength = bstream.readNumber(2);
-        
+
         this.filename = null;
         if (this.fileNameLength > 0) {
                 this.filename = bstream.readString(this.fileNameLength);
         }
-        
+
         info("Zip Local File Header:");
         info(" version=" + this.version);
         info(" general purpose=" + this.generalPurpose);
@@ -81,20 +81,20 @@ var ZipLocalFile = function(bstream) {
         info(" file name length=" + this.fileNameLength);
         info(" extra field length=" + this.extraFieldLength);
         info(" filename = '" + this.filename + "'");
-        
+
         this.extraField = null;
         if (this.extraFieldLength > 0) {
                 this.extraField = bstream.readString(this.extraFieldLength);
                  info(" extra field=" + this.extraField);
         }
-        
+
         // read in the compressed data
         this.fileData = null;
         if (this.compressedSize > 0) {
                 this.fileData = new Uint8Array(bstream.bytes.buffer, bstream.ptr, this.compressedSize);
                 bstream.ptr += this.compressedSize;
         }
-        
+
         // TODO: deal with data descriptor if present (we currently assume no data descriptor!)
         // "This descriptor exists only if bit 3 of the general purpose bit flag is set"
         // But how do you figure out how big the file data is if you don't know the compressedSize
@@ -155,7 +155,7 @@ var unzip = function(arrayBuffer) {
                         }
                 }
                 totalFilesInArchive = localFiles.length;
-                
+
                 // got all local files, now sort them
                 localFiles.sort(function(a,b) {
                         // extract the number at the end of both filenames
@@ -170,7 +170,7 @@ var unzip = function(arrayBuffer) {
                         // Find the first number character from the back of the filename
                         while (aname[aindex-1] >= '0' && aname[aindex-1] <= '9') --aindex;
                         while (bname[bindex-1] >= '0' && bname[bindex-1] <= '9') --bindex;
-                        
+
                         // parse them into numbers and return comparison
                         var anum = parseInt(aname.substr(aindex), 10),
                                 bnum = parseInt(bname.substr(bindex), 10);
@@ -186,7 +186,7 @@ var unzip = function(arrayBuffer) {
                         var archiveExtraFieldLength = bstream.readNumber(4);
                         bstream.readString(archiveExtraFieldLength);
                 }
-                
+
                 // central directory structure
                 // TODO: handle the rest of the structures (Zip64 stuff)
                 if (bstream.peekNumber(4) == zCentralFileHeaderSignature) {
@@ -211,13 +211,13 @@ var unzip = function(arrayBuffer) {
                                 bstream.readNumber(2); // internal file attributes
                                 bstream.readNumber(4); // external file attributes
                                 bstream.readNumber(4); // relative offset of local header
-                                
+
                                 bstream.readString(fileNameLength); // file name
                                 bstream.readString(extraFieldLength); // extra field
-                                bstream.readString(fileCommentLength); // file comment                          
+                                bstream.readString(fileCommentLength); // file comment
                         }
                 }
-                
+
                 // digital signature
                 if (bstream.peekNumber(4) == zDigitalSignatureSignature) {
                         info(" Found a Digital Signature");
@@ -226,24 +226,24 @@ var unzip = function(arrayBuffer) {
                         var sizeOfSignature = bstream.readNumber(2);
                         bstream.readString(sizeOfSignature); // digital signature data
                 }
-                
+
                 // report # files and total length
                 if (localFiles.length > 0) {
                         postProgress();
                 }
-                
+
                 // now do the unzipping of each file
                 for (var i = 0; i < localFiles.length; ++i) {
                         var localfile = localFiles[i];
-                        
-                        // update progress 
+
+                        // update progress
                         currentFilename = localfile.filename;
                         currentFileNumber = i;
                         currentBytesUnarchivedInFile = 0;
-                        
+
                         // actually do the unzipping
                         localfile.unzip();
-                        
+
                         if (localfile.fileData != null) {
                                 postMessage(new bitjs.archive.UnarchiveExtractEvent(localfile));
                                 postProgress();
@@ -254,8 +254,8 @@ var unzip = function(arrayBuffer) {
   }
 }
 
-// returns a table of Huffman codes 
-// each entry's index is its code and its value is a JavaScript object 
+// returns a table of Huffman codes
+// each entry's index is its code and its value is a JavaScript object
 // containing {length: 6, symbol: X}
 function getHuffmanCodes(bitLengths) {
         // ensure bitLengths is an array containing at least one element
@@ -263,12 +263,12 @@ function getHuffmanCodes(bitLengths) {
                 err("Error! getHuffmanCodes() called with an invalid array");
                 return null;
         }
-        
+
         // Reference: http://tools.ietf.org/html/rfc1951#page-8
         var numLengths = bitLengths.length,
                 bl_count = [],
                 MAX_BITS = 1;
-        
+
         // Step 1: count up how many codes of each length we have
         for (var i = 0; i < numLengths; ++i) {
                 var length = bitLengths[i];
@@ -281,10 +281,10 @@ function getHuffmanCodes(bitLengths) {
                 if (bl_count[length] == undefined) bl_count[length] = 0;
                 // a length of zero means this symbol is not participating in the huffman coding
                 if (length > 0) bl_count[length]++;
-                
+
                 if (length > MAX_BITS) MAX_BITS = length;
         }
-        
+
         // Step 2: Find the numerical value of the smallest code for each code length
         var next_code = [],
                 code = 0;
@@ -295,7 +295,7 @@ function getHuffmanCodes(bitLengths) {
                 code = (code + bl_count[bits-1]) << 1;
                 next_code[bits] = code;
         }
-        
+
         // Step 3: Assign numerical values to all codes
         var table = {}, tableLength = 0;
         for (var n = 0; n < numLengths; ++n) {
@@ -307,7 +307,7 @@ function getHuffmanCodes(bitLengths) {
                 }
         }
         table.maxLength = tableLength;
-        
+
         return table;
 }
 
@@ -315,7 +315,7 @@ function getHuffmanCodes(bitLengths) {
          The Huffman codes for the two alphabets are fixed, and are not
          represented explicitly in the data.  The Huffman code lengths
          for the literal/length alphabet are:
-        
+
                            Lit Value    Bits        Codes
                            ---------    ----        -----
                                  0 - 143     8          00110000 through
@@ -338,7 +338,7 @@ function getFixedLiteralTable() {
                 for (i = 144; i <= 255; ++i) bitlengths[i] = 9;
                 for (i = 256; i <= 279; ++i) bitlengths[i] = 7;
                 for (i = 280; i <= 287; ++i) bitlengths[i] = 8;
-                
+
                 // get huffman code table
                 fixedHCtoLiteral = getHuffmanCodes(bitlengths);
         }
@@ -349,7 +349,7 @@ function getFixedDistanceTable() {
         if (!fixedHCtoDistance) {
                 var bitlengths = new Array(32);
                 for (var i = 0; i < 32; ++i) { bitlengths[i] = 5; }
-                
+
                 // get huffman code table
                 fixedHCtoDistance = getHuffmanCodes(bitlengths);
         }
@@ -361,21 +361,21 @@ function getFixedDistanceTable() {
 function decodeSymbol(bstream, hcTable) {
         var code = 0, len = 0;
         var match = false;
-        
+
         // loop until we match
         for (;;) {
                 // read in next bit
                 var bit = bstream.readBits(1);
                 code = (code<<1) | bit;
                 ++len;
-                
+
                 // check against Huffman Code table and break if found
                 if (hcTable.hasOwnProperty(code) && hcTable[code].length == len) {
-                
+
                         break;
                 }
                 if (len > hcTable.maxLength) {
-                        err("Bit stream out of sync, didn't find a Huffman Code, length was " + len + 
+                        err("Bit stream out of sync, didn't find a Huffman Code, length was " + len +
                             " and table only max code length of " + hcTable.maxLength);
                         break;
                 }
@@ -399,7 +399,7 @@ var CodeLengthCodeOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2
          264   0    10       274   3   43-50     284   5  227-257
          265   1  11,12      275   3   51-58     285   0    258
          266   1  13,14      276   3   59-66
-         
+
         */
 var LengthLookupTable = [
                 [0,3], [0,4], [0,5], [0,6],
@@ -482,13 +482,13 @@ function inflateBlockData(bstream, hcLiteralTable, hcDistanceTable, buffer) {
                                 // now apply length and distance appropriately and copy to output
 
                                 // TODO: check that backward distance < data.length?
-                                
+
                                 // http://tools.ietf.org/html/rfc1951#page-11
                                 // "Note also that the referenced string may overlap the current
                                 //  position; for example, if the last 2 bytes decoded have values
                                 //  X and Y, a string reference with <length = 5, distance = 2>
                                 //  adds X,Y,X,Y,X to the output stream."
-                                // 
+                                //
                                 // loop for each character
                                 var ch = buffer.ptr - distance;
                                 blockSize += length;
@@ -500,7 +500,7 @@ function inflateBlockData(bstream, hcLiteralTable, hcDistanceTable, buffer) {
                                 } else {
                                   buffer.insertBytes(buffer.data.subarray(ch, ch + length))
                                 }
-                                
+
                         } // length-distance pair
                 } // length-distance pair or end-of-block
         } // loop until we reach end of block
@@ -532,7 +532,7 @@ function inflate(compressedData, numDecompressedBytes) {
                         var len = bstream.readBits(16),
                                 nlen = bstream.readBits(16);
                         // TODO: check if nlen is the ones-complement of len?
-                        
+
                         if(len > 0) buffer.insertBytes(bstream.readBytes(len));
                         blockSize = len;
                 }
@@ -545,17 +545,17 @@ function inflate(compressedData, numDecompressedBytes) {
                         var numLiteralLengthCodes = bstream.readBits(5) + 257;
                         var numDistanceCodes = bstream.readBits(5) + 1,
                                 numCodeLengthCodes = bstream.readBits(4) + 4;
-                                
-                        // populate the array of code length codes (first de-compaction)                
+
+                        // populate the array of code length codes (first de-compaction)
                         var codeLengthsCodeLengths = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
                         for (var i = 0; i < numCodeLengthCodes; ++i) {
                                 codeLengthsCodeLengths[ CodeLengthCodeOrder[i] ] = bstream.readBits(3);
                         }
-                        
+
                         // get the Huffman Codes for the code lengths
                         var codeLengthsCodes = getHuffmanCodes(codeLengthsCodeLengths);
-                        
-                        // now follow this mapping 
+
+                        // now follow this mapping
                         /*
                0 - 15: Represent code lengths of 0 - 15
                    16: Copy the previous code length 3 - 6 times.
@@ -598,10 +598,10 @@ function inflate(compressedData, numDecompressedBytes) {
                                         }
                                 }
                         }
-                        
+
                         // now split the distance code lengths out of the literal code array
                         var distanceCodeLengths = literalCodeLengths.splice(numLiteralLengthCodes, numDistanceCodes);
-                        
+
                         // now generate the true Huffman Code tables using these code lengths
                         var hcLiteralTable = getHuffmanCodes(literalCodeLengths),
                                 hcDistanceTable = getHuffmanCodes(distanceCodeLengths);
@@ -620,7 +620,7 @@ function inflate(compressedData, numDecompressedBytes) {
 
   } while (bFinal != 1);
   // we are done reading blocks if the bFinal bit was set for this block
-        
+
   // return the buffer data bytes
   return buffer.data;
 }
@@ -629,5 +629,3 @@ function inflate(compressedData, numDecompressedBytes) {
 onmessage = function(event) {
   unzip(event.data.file, true);
 };
-
-Terms - Privacy - Project Hosting Hel

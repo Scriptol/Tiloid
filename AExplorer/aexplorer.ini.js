@@ -22,12 +22,41 @@ var config={
             {
                 "name": "leftpane",
                 "label": "Left panel:",
-                "input": "c:\\Users\\moi\\Documents\\LogoMaker"
+                "size": "60",
+                "input": "d:\\Download-Dirs\\Scriptol.fr"
             },
             {
                 "name": "rightpane",
                 "label": "Right panel:",
-                "input": "w:\\scriptol.com"
+                "size": "60",
+                "input": "c:\\MinGW\\mingw32\\bin"
+            }
+        ]
+    },
+    "Bookmarks": {
+        "list": [
+            {
+                "name": "lcontent",
+                "label": "Left panel",
+                "initial": "c:\\",
+                "select": [
+                    "c:\\",
+                    "d:\\Download-Dirs\\Scriptol.fr\\Creation et gestion\\Ecrire pour le web",
+                    "D:\\Art",
+                    "d:\\Download-Dirs\\Scriptol.fr\\Compilateur"
+                ]
+            },
+            {
+                "name": "rcontent",
+                "label": "Right panel",
+                "initial": "c:\\",
+                "select": [
+                    "c:\\",
+                    "w:\\",
+                    "d:/",
+                    "c:/MinGW",
+                    "c:/MinGW/mingw32/bin"
+                ]
             }
         ]
     }

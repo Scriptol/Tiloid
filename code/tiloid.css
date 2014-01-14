@@ -7,6 +7,7 @@ body {
 	margin:0;
 	padding:16px;
 }
+
 h2 {
 	color: #CCCCCC
 	}
@@ -15,51 +16,70 @@ h3 {
 	font-size: 1.15em;	
 	background-color: #006666;  	
 	color: #DCDCDC
-	}
+}
+
 h4 {
 	color: #000000
-	}
+}
+
 a {	
 	color: #3366CC;	
 	text-decoration: none
 }
 a:hover {	
 	text-decoration: underline
-	}
+}
 
-table {
-	color: #FFFFFF
-	}
-td, th {	
-	font-family: Arial, Helvetica, sans-serif;
-	font-size: 1em;
-	line-height: 2em;
-	color: #333333
-	}
-textarea {
-	font-family: Arial, Helvetica, sans-serif;	
-	font-size: 1em
-	}
-ul {	
-	font-family: Arial, Helvetica, sans-serif;	
-	font-size: 1em;	
-	list-style-type: square;	
-	list-style-position: outside
-	}
-iframe, .pane4
+
+.container
 {
+	max-width:100%;
+	margin:0 auto;
+}
+.pane16
+{
+	max-width:100%;
+	width:100%;
+	height:100%;
+	margin:0 auto;
+}
+
+
+.outframe {
 	width:240px;
 	height:160px;
-	max-width:240px;
-	min-width:240px;
-	min-height:160px;
-	overflow:hidden;
+	-max-width:240px;
+	-min-width:240px;
+	-min-height:160px;
 	border:none;
 	float:left;
 	margin:4px;
 	padding:0;
 	background-color:white;
+	resize:both;
+	overflow:hidden;
+	padding:4px;
 }	
+
+	
+iframe, .pane4
+{
+	width:240px;
+	height:160px;
+	border:none;
+	float:left;
+	margin:4px;
+	padding:4px;
+	background-color:white;
+}	
+
+.inframe {
+	width:100%;
+	height:100%;
+	margin:0;
+	padding:0;
+}
+
 .footer { 
 	font-family: Arial, Helvetica, sans-serif;
 	font-size: 1.167em;
@@ -70,18 +90,6 @@ iframe, .pane4
 	width:100%;
 }
 
-.container
-{
-	max-width:1024px;
-	margin:0 auto;
-}
-.pane16
-{
-	max-width:1024px;
-	width:100%;
-	height:100%;
-	margin:0 auto;
-}
 
 .dir
 {

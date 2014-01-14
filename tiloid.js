@@ -1,6 +1,6 @@
 /*
 	Tiloid UI
-	(c) 2012 Denis Sureau
+	(c) 2012-2014 Denis Sureau
 	Free, open source under the GPL 3 License.
 */
 var http = require("http"),
@@ -55,7 +55,7 @@ function getFilename(request, response)
 {
     var urlpath = url.parse(request.url).pathname; // following domain or IP and port
     var localpath = path.join(process.cwd(), urlpath); // if we are at root
-    path.exists(localpath, function(result) { getFile(result, response, localpath)});
+    fs.exists(localpath, function(result) { getFile(result, response, localpath)});
 }
 
 function nativeComm(ncom)
@@ -79,7 +79,7 @@ function nativeComm(ncom)
 
 // Run a local script a the Web interface request
 
-function runScript(exists, interpreter, filename, options) 
+function runScript(exists, interpreter, filename, options)
 {
   if(!exists)
   {
@@ -134,48 +134,62 @@ function webComm(websocket)
        case 'javascript':
        	var scriptname = params.scriptname;
         console.log("JavaScript: " + scriptname);
-	     	fs.exists(scriptname, function(result) { 
+	     	fs.exists(scriptname, function(result) {
           runJavaScript(result, scriptname, params.options)
         });
-        break;  
+        break;
        case 'php':
        default:
        	var scriptname = params.scriptname;
         var interpreter = data.interpreter;
         console.log("PHP: " + scriptname);
-	     	fs.exists(scriptname, function(result) { 
+	     	fs.exists(scriptname, function(result) {
           runScript(result, interpreter, scriptname, params.options)
         });
         break;
 	    }
     }
   );
- 
+
 }
 
 
 function loadBrowser(filename)
 {
-	var browser = explorer.config.chrome;
+	var browserName = explorer.config.browser;
+    console.log("browsername " + browserName);
+    console.log("test2 " + explorer.config[browserName]);
+    var browser = explorer.config[browserName];
+    if(browserName='')
+    {
+        browser = explorer.config.chrome;
+        browserName='Chrome';
+    }
+    browser = browser.replace('Program Files (x86)','Progra~2');
+    browser = browser.replace('Program Files','Progra~1');
+    console.log('browser= '+browser);
 	var param="localhost:1000/" + filename;
 	console.log("Loading...");
-	path.exists(browser, function(result) {
-		if(!result) { console.log("File not found " + browser); return 0; }
+	fs.exists(browser, function(result) {
+		if(!result) { console.log("File not found " + browser); return ''; }
 		var command = browser + " " + param;
 		console.log("Running " + command);
-		runner.exec(command, function(err, stdout, stderr) { 
-      console.log("Terminated. "+ stderr); 
+		runner.exec(command, function(err, stdout, stderr) {
+      console.log("Terminated. "+ stderr);
     });
 	});
-
+    return browserName;
 }
 
 explorer.loadIni("node.ini");
 var server = http.createServer(getFilename); // Create a server to display the interface
 server.listen(1000);
 console.log("Server available...");
-loadBrowser('tiloid.html');
-console.log("Browser loaded. Port 1000 ready.");
+var browserName = loadBrowser('tiloid.html');
+if(browserName='')
+    console.log("Error, browser not found.");
+else
+    console.log("Browser "+browserName+" loaded. Port 1000 ready.");
 
 // Create a TCP server to communicate with native script
 var nativeserver = net.createServer(function(n) { nativeComm(n);});

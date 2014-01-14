@@ -6,8 +6,8 @@
 <link rel="stylesheet" href="aexplorer.css"> 
 <script type="text/javascript" src="/socket.io/socket.io.js"></script>
 <script type="text/javascript" src="/code/chooser.js"></script>
-<script type="text/javascript" src="aexplorer.js"></script>
-<script src="aexplorer.ini.js" type="text/javascript"></script>
+<script type="text/javascript" src="aecode.js"></script>
+<script type="text/javascript" src="aexplorer.ini.js"></script>
 </head>
 
 <body>
@@ -16,8 +16,8 @@
 <div class="toolbar" id="topbar">
  &nbsp;
 <div class="ticon"><img src="images/invert.png" id='tinvert' width="33" height="32" title="Invert left and right panels"></div>
-<div class="ticon"><img src="images/forward.png" id='tdup' width="32" height="32" title="Display right as left"></div>
-<div class="ticon"><img src="images/copy.png" id='tcopy' width="32" height="32" title="Copy selected file or dirs to right panel"></div>
+<div class="ticon"><img src="images/forward.png" id='tdup' width="32" height="32" title="Display left on right too"></div>
+<div class="ticon"><img src="images/copy.png" id='tcopy' width="32" height="32" title="Copy selected files or dirs to right window"></div>
 <div class="ticon"><img src="images/copyren.png" id="tcopren" width="32" height="32" title="Copy/Rename"></div>
 <div class="ticon"><img src="images/archive.png" id='tzip' width="32" height="32" title="Make a zip archive"></div>
 <div class="ticon"><img src="images/edit.png" id='tedit' width="32" height="32" title="View/Edit the selected file"></div>
@@ -26,9 +26,9 @@
 <div class="ticon tooltip"><img src="images/help.png" id='thelp' width="32" height="32">
    <span><img src="images/apache.png">
    <h3>Advanced Explorer</h3>
-   <p>Version 1.0</p>
+   <p>Version 1.1</p>
    <p>
-    &copy; 2012 Denis Sureau<br>
+    &copy; 2012-2014 Denis Sureau<br>
     www.scriptol.com<br>
    </p>
    </span>
@@ -42,14 +42,18 @@
   <div class="toolbar toolpane" id="lcontrol">
 	  &nbsp;
 	<div class="icon"><img src="images/reload.png" width="32" height="32" id="lreload" title="Reload"></div>
-	<div class="icon"><img src="images/home.png" width="32" height="32" id="lhome" title="Go to root"></div>
 	<div class="icon"><img src="images/up.png" width="32" height="32" id="lup" title="Go to parent"></div>
+	<div class="icon"><img src="images/home.png" width="32" height="32" id="lhome" title="Go to root"></div>	
 	<div class="icon"><img src="images/create.png" width="32" height="32" id="lcreate" title="Create directory"></div>
 	<div class="icon"><img src="images/rename.png" width="32" height="32" id="lrename" title="Rename"></div>
-  <div class="icon"><img src="images/delete.png" width="32" height="32" id="ldelete" title="Delete selected"></div>
+  <div class="icon"><img src="images/delete.png" width="32" height="32" id="ldelete" title="Delete selected file/dir"></div>
   </div>
-  <div class="fullpath"> 
-    <input type="text" class="innpath" id="lcontentpath" value="/" >
+  <div class="fullpath">
+    <div class="fsroot"><img src="images/computer.png" class="fsimg" onclick="computer('lcontent')"></div>
+	<div class="fspath">
+      <img src="images/star.png" id="lstar" class="fstar" onclick="bookmark('lcontent')">  
+      <input type="text" class="innpath" id="lcontentpath" value="/" >
+	</div>   
   </div>
   <div id="lcontent"></div> 
 </div>
@@ -58,14 +62,18 @@
   <div class="toolbar toolpane" id="rcontrol">
 	  &nbsp;	
     <div class="icon"><img src="images/reload.png" width="32" height="32" id="rreload" title="Reload"></div>
-    <div class="icon"><img src="images/home.png" width="32" height="32" id="rhome" title="Go to root"></div>
     <div class="icon"><img src="images/up.png" width="32" height="32" id="rup" title="Go to parent"></div>
+    <div class="icon"><img src="images/home.png" width="32" height="32" id="rhome" title="Go to root"></div>	
     <div class="icon"><img src="images/create.png" width="32" height="32" id="rcreate" title="Create directory"></div>
     <div class="icon"><img src="images/rename.png" width="32" height="32" id="rrename" title="Rename"></div>	  
-    <div class="icon"><img src="images/delete.png" width="32" height="32" id="rdelete" title="Delete selected"></div>
+    <div class="icon"><img src="images/delete.png" width="32" height="32" id="rdelete" title="Delete selected file/dir"></div>
   </div>
-  <div class="fullpath">   
-    <input type="text" class="innpath" id="rcontentpath" value="/">
+  <div class="fullpath"> 
+    <div class="fsroot"><img src="images/computer.png" class="fsimg" onclick="computer('rcontent')"></div>
+	<div class="fspath">
+      <img src="images/star.png" id="rstar" class="fstar" onclick="bookmark('rcontent')">
+      <input type="text" class="innpath" id="rcontentpath" value="/">
+	</div>  
   </div>
   <div id="rcontent"></div> 	  
 </div>
@@ -95,21 +103,22 @@
 <script>
 function startExplorer()
 {
-
+  ChooserDrag = AExplorerDrag;
   var lpath = config.Memory.list[0].input;
   var rpath = config.Memory.list[1].input;
   if(lpath == '') { lpath = "/"; rpath = "/"; }
 	currentpath['lcontent'] = lpath;
 	currentpath['rcontent'] = rpath;	
-	fileButton('lcontent');
-	fileButton('rcontent');	
+	fileButton('lcontent', true);
+	fileButton('rcontent', false);	
 	buildEvents();
 }
 
 function exitExplorer()
 {
-  config.Memory.list[0].input = document.getElementById('lcontentpath').value;
-  config.Memory.list[1].input = document.getElementById('rcontentpath').value;
+  config.Memory.list[0].input = currentpath['lcontent'];
+  config.Memory.list[1].input = currentpath['rcontent'];
+  
   var frameopt = document.getElementById("options");
   var fcontent = (frameopt.contentWindow || frameopt.contentDocument);
   fcontent.saveFromAE('/AExplorer/aexplorer.ini.js', config);       

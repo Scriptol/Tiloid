@@ -16,7 +16,7 @@ function addLabel(value)
 
 function addSelect(name, initial, arr)
 {
-	form += "<select name='"+ name + "' id='" + name+ "'>";
+	form += "<select style='min-width:320px' name='"+ name + "' id='" + name+ "'>";
 
 	for(var i = 0; i < arr.length; i++)
 	{
@@ -31,9 +31,9 @@ function addSelect(name, initial, arr)
 	form += "</select>";
 }
 
-function addInput(name, initial)
+function addInput(name, initial, size)
 {
-	form += "<input type='text' name='" + name + "' id='" + name + "' value='" + initial + "'>";
+	form += "<input type='text' name='" + name + "' id='" + name + "' size='" + size + "' value='" + initial + "'>";
 }
 
 function addCheck(name, initial)
@@ -119,6 +119,7 @@ function parseGroup(innarr)
 {
 	var initial = '';
 	var name = '';
+  var size = 40;
 	for(var option in innarr)
 	{
 		switch(option)
@@ -140,11 +141,14 @@ function parseGroup(innarr)
 			case 'initial':
 				initial = innarr[option];
 				break;
+      case 'size':
+        size = innarr['size']; 
+        break;         
 			case 'select':
 				addSelect(name, initial, innarr[option]);
 				break;
 			case 'input':
-				addInput(name, innarr[option]);
+				addInput(name, innarr[option], size);
 				break;
 			case 'checkbox':
 				addCheck(name, innarr['checkbox']);			
@@ -164,7 +168,7 @@ function iniSetup(cfg, inifile)
 	 form += "<p class='group'>" + group + "</p>";
 	 parseGroup(config[group]);	
   }
-  form += "<p><input type='button' onclick='saveIni(\""+inifile+"\")' value='Update Configuration'></p>";
+  form += "<p><input type='button' onclick='saveIni(\""+inifile+"\")' value='Save configuration'></p>";
   var target = document.getElementById("options");
   target.innerHTML = form;
 }  

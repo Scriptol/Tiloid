@@ -4,7 +4,8 @@
 <meta charset=utf-8>
 <title>Tioloid</title>
 <link type="text/css" href="code/tiloid.css" rel="stylesheet">
-
+<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="tiloid.ini.js"></script>
 </head>
 
 <body>
@@ -15,11 +16,44 @@
 
 <iframe src="LinkChecker/linkchecker.html" scrolling="no"></iframe>
 
+<div class='outframe' id='map'>
+	<iframe class='inframe' src="map.html"></iframe>
+</div>
+
 <iframe src="Resizer/resizer.html" ></iframe>
 
-<iframe src="map.html"></iframe>
 
+<div>
+<script src="//www.gmodules.com/ig/ifr?url=http://www.gstatic.com/ig/modules/datetime_v3/datetime_v3.xml&amp;up_color=grey&amp;up_dateFormat=wmd&amp;up_firstDay=0&amp;up_clocks=%5B%5D&amp;up_mainClock=&amp;up_mainClockTimeZoneOffset=&amp;up_mainClockDSTOffset=&amp;up_24hourClock=true&amp;up_showWorldClocks=true&amp;up_useServerTime=false&amp;synd=open&amp;w=320&amp;h=160&amp;title=__MSG_title__&amp;lang=en&amp;country=ALL&amp;border=%23ffffff%7C3px%2C1px+solid+%23999999&amp;output=js"></script>
+</div>
+</script>
 </div>
 </div>
+
+
+<script>
+var config = {};
+
+function exitTiloid() {
+	var apps = document.querySelectorAll('.outframe');
+	for(var i = 0; i < apps.length; i++) {
+		var x = apps[i];
+    
+		if(x.id == '') continue;
+		var w = x.clientWidth;
+		var h = x.clientHeight;
+		//alert(x.id + ": " +w + " " + h);
+    var values = {}
+    //value[w] = w;
+    //values[h] = h;
+		config[x.id] = { 'w' : w, 'h' : h};		
+	}	
+  alert(JSON.stringify(config, null, '\t'))
+}	
+
+window.onclose = exitTiloid;
+
+</script>
+
 </body>
 </html>

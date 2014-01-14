@@ -1,7 +1,7 @@
 /* File Chooser
    File input replacement with path and default value
    for local use of JavaScript on the desktop.
-   (c) 2012 By Denis Sureau.
+   (c) 2012-2014 By Denis Sureau.
    
    License LGPL 3.0.
    Free to use provided this copyright notice is not removed.
@@ -17,8 +17,11 @@ var currentpath = new Array();
 var insidezip = new Array();
 var elementToSelect = null;
 var elementToOffset = null;
+var ChooserDrag = null;
 
-function fileButton(target)
+var customview = new Array();
+
+function fileButton(target, dragflag)
 {
 	var filepath = currentpath[target];  // to do : be persistent
 	var query = { 'app' : 'explorer', 'params': { 'path' : filepath, 'command': 'getdir', 'target': target } } ;
@@ -39,15 +42,35 @@ function replaceFilename(path, name)
   return path.slice(0, lio +1) + name;
 }
 
-function buildDir(filepath, fname, id)
+/*
+  Building the entry for a storage unit
+*/ 
+
+function buildDrive(pathname, id)
 {
-	var balise ="<div class='dir' onDblClick='chDir(\"" + fname + "\",\"" + id + "\")' onClick='sel(this)' oncontextmenu='return dsel(this)'>";
-  balise += '<img src="images/dir.png">';
-	balise += fname;
+	var balise ="<div class='dir' onDblClick='chDir(\"" + pathname + "\",\"" + id + "\")' onClick='sel(this)' oncontextmenu='return dsel(this)'>";
+  balise += '<img src="images/drive.png">';
+	balise += pathname;
 	balise += "</div>";
 	return(balise);
 }
 
+/*
+  Building the entry for a directory
+*/  
+
+function buildDir(pathname, id)
+{
+	var balise ="<div class='dir' onDblClick='chDir(\"" + pathname + "\",\"" + id + "\")' onClick='sel(this)' oncontextmenu='return dsel(this)'>";
+  balise += '<img src="images/dir.png">';
+	balise += pathname;
+	balise += "</div>";
+	return(balise);
+}
+
+/*
+  Building the entry for a file
+*/  
 
 function buildLink(filepath, fname, panelid, timesize, ext)
 {
@@ -128,7 +151,7 @@ function imageList(content)
 
 		if(type=='dir')
 		{
-			dirlist += buildDir(filepath, name, target) + "<br>";
+			dirlist += buildDir(name, target) + "<br>";
 		}
 		else
 		{
@@ -161,28 +184,24 @@ function imageList(content)
 
 function fileList(content)
 {
-	//alert(content.iskb);
-  
-  var target = content.target;
-  insidezip[target]=content.iszip;
-  
+	var target = content.target;
+	insidezip[target]=content.iszip;
 	var d = document.getElementById(target);
-  var extmask = content.extmask; 
+	var extmask = content.extmask; 
 
-	//alert("filedisplay  target:" + d + " content: " + content);
 	var filepath = content['path'];
   
-  var fpathid = content.target + "path";
-  var fpath = document.getElementById(fpathid);
-  fpath.value = filepath;
+	var fpathid = target + "path";
+	var fpath = document.getElementById(fpathid);
+	fpath.value = filepath;
   
-  var listid = content.target + "list";
+	var listid = target + "list";
 	var dir = content['list'];
 	var page = "<div class='filechooser'>";
-	//page += "<p class='path'>" + filepath + "</p>";
 	page += "<div class='flist' id='"+ listid +"' tabindex='0'>";
 	var dirlist = "";
 	var filelist ="";
+	
 	for(var i = 0; i < dir.length; i++)
 	{
 		var item = dir[i];
@@ -191,52 +210,80 @@ function fileList(content)
 
 		if(type=='dir')
 		{
-      dirlist += buildDir(filepath, name, target) + "<br>";
+			dirlist += buildDir(name, target) + "<br>";
 		}
 		else
 		{
-      var timesize = item[2];    
+			var timesize = item[2];    
 			var p = name.lastIndexOf('.');
 			var ext = name.slice(p + 1);
 			if(extmask && ext != extmask) continue; 
 			filelist += buildLink(filepath, name, target, timesize, ext) + "<br>";
 		}
 	}
+	
 	page += dirlist;
 	page += filelist;
 	page += "</div>";
 	page += "</div>";
 	d.innerHTML = page;
+
   //alert(page); 
-  addKeyListEvents(target);
+	addKeyListEvents(target);
+  //alert(dragflag);
+  if(ChooserDrag[target])
+    setDrag(listid);
 
   //alert(elementToSelect);
-  if(elementToSelect != null)
-  {
-    if(elementToSelect == '*')
-      setFirstSelected(target);
-    else
-    {
-      chooserLastSelected = null;
-      elementToSelect = getElementByName(elementToSelect, target);
-      sel(elementToSelect);
-    } 
-  }     
-  elementToSelect = null;
-  elementToOffset = null;
- 
-  var currdiv = document.getElementById(listid);
-  currdiv.focus();
-  
+	if(elementToSelect != null)
+	{
+		if(elementToSelect == '*')
+			setFirstSelected(target);
+		else
+		{
+			chooserLastSelected = null;
+			elementToSelect = getElementByName(elementToSelect, target);
+			sel(elementToSelect);
+		} 
+	}     
+	elementToSelect = null;
+	elementToOffset = null;
+
+	var currdiv = document.getElementById(listid);
+	currdiv.focus();
+}
+
+// set entries draggables
+
+function setDrag(id)
+{
+  //alert(id);
+  var lid = document.getElementById(id);
+  var follow = lid.firstChild;
+  follow.setAttribute('draggable', true);
+  while(follow = follow.nextSibling) {
+    follow.setAttribute('draggable', true);
+    follow.addEventListener('dragstart', function(evnt) {
+      evnt.dataTransfer.effectAllowed = 'copy';
+      if(!isSelected(this)) {
+        deselectAll(this.parentNode);
+        setSelected(this);
+      }  
+      //evnt.dataTransfer.setData('text', this.outerHTML);
+      return false;
+    }, false);    
+  }  
+  //alert(lid.innerHTML);
+  return;
 }
 
 // change dir called by the interface
 
 function chDir(filepath, target)
-{
+{    
 	if(filepath.slice(0, 8) == "file:///")
 		filepath = filepath.slice(8);
-
+ 
 	var a = {  'app': 'explorer', 
              'params' : { 
                    'file': 'code/chooser.js', 
@@ -254,6 +301,14 @@ function unlocalize(filepath)
   return(filepath);    
 }      
 
+function noHTMLchars(s){
+    s = s.replace(/&lt;/g, '<');
+    s = s.replace(/&gt;/g, '>');
+    s = s.replace(/&quot;/g, '"');
+    s = s.replace(/&copy;/g, '©');
+    return s.replace(/&amp;/g, '&');
+}
+
 function view(element, filepath, panelid, forcePage)
 {
   if(insidezip[panelid]) // always displayed like a page
@@ -269,12 +324,26 @@ function view(element, filepath, panelid, forcePage)
     socket.emit('interface', a);    
     return;
   }   
-  filepath = replaceFilename(filepath, getNameSelected(element));
-  //alert(filepath);  
+  filepath = replaceFilename(filepath, getNameSelected(element));  
   var p = filepath.lastIndexOf('.');
 	var ext = filepath.slice(p + 1);
   
   if(forcePage) ext ='';
+  
+  for(var cv in customview)
+  {
+	 if(ext == cv)
+	 {
+		var a = customview[cv];
+		a.params.filename = filepath;
+		a.params.path = getNameSelected(element);
+		a.params.target = panelid;
+		socket.emit('interface', a);
+		return;
+	 }
+  }
+  
+  filepath = noHTMLchars(filepath);
   
   switch(ext.toLowerCase())
   {
@@ -337,6 +406,10 @@ var chooserLastSelected = null;
 function setSelected(element)
 {
     element.className="entrybold";	     
+}
+
+function isSelected(element) {
+  return element.className=="entrybold"; 
 }
 
 function selectRange(item1, item2)
@@ -480,11 +553,15 @@ function open(element, forcePage)
 function copyRename(element)
 {
   var oldname = getNameSelected(element);
+  oldname = noHTMLchars(oldname);
 	var newname = prompt("New name:", oldname);
 	if(newname == null || newname == "") return;
   
   var sourcepath = pathJoin(currentpath['lcontent'], oldname);
   var targetpath = pathJoin(currentpath['lcontent'], newname);
+  
+  sourcepath = noHTMLchars(sourcepath);
+  
   if(sourcepath == targetpath)
   {
   	alert("Can't copy a file over itself!");	
@@ -702,7 +779,7 @@ function setFirstSelected(target)
   sel(element);
 }
 
-/* Extract name of selected item */
+/* Extract name of selected item as displayed */
 
 function getNameSelected(item)
 {
